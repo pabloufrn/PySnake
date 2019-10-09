@@ -1,11 +1,8 @@
-import deque
 
 class Player:
-	def __init__(self, name, snake_size, position):
+	def __init__(self, address):
+		self.snake_size = 3
+		self.address = address
+		# self.set_position((0,0)) # posição aleatoria
+	def set_name(self, name):
 		self.name = name
-		self.snake_size = snake_size
-		self.set_position(position)
-
-	def set_position(self, pos):
-		for _ in range(snake_size):
-			snake.push(pos)
