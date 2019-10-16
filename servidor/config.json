@@ -1,6 +1,6 @@
 {
 	"hostname": "localhost",
-	"port": "65333",
+	"port": 65333,
 	"board_width": 40,
 	"board_height": 30,
 	"max_players": 4,
