@@ -1,5 +1,4 @@
 import math
-import random
 import pygame
 import tkinter as tk
 from tkinter import messagebox
@@ -31,6 +30,7 @@ class cube(object):
 		j = self.pos[1]
  
 		pygame.draw.rect(surface, self.color, (i*disx+1,j*disy+1, disx-2, disy-2))
+		# todo: calcular a posição dos olhos
 		# if eyes:
 			# centre = dis//2
 			# radius = 3
@@ -38,9 +38,6 @@ class cube(object):
 			# circleMiddle2 = (i*dis + dis -radius*2, j*dis+8)
 			# pygame.draw.circle(surface, (0,0,0), circleMiddle, radius)
 			# pygame.draw.circle(surface, (0,0,0), circleMiddle2, radius)
-	   
- 
- 
  
 class snake(object):
 	body = []
@@ -61,38 +58,30 @@ class snake(object):
  
 			for key in keys:
 				if keys[pygame.K_LEFT]:
-					self.dirnx = -1
-					self.dirny = 0
-					self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
- 
+					if(self.next_move == "left"):
+						return
+					else: 
+						self.next_move = "left"
+						# todo: Enviar próximo movimento
 				elif keys[pygame.K_RIGHT]:
-					self.dirnx = 1
-					self.dirny = 0
-					self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
+					if(self.next_move == "right"):
+						return
+					else: 
+						self.next_move = "right"
  
 				elif keys[pygame.K_UP]:
-					self.dirnx = 0
-					self.dirny = -1
-					self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
+					if(self.next_move == "up"):
+						return
+					else:
+						self.next_move = "up"
  
 				elif keys[pygame.K_DOWN]:
-					self.dirnx = 0
-					self.dirny = 1
-					self.turns[self.head.pos[:]] = [self.dirnx, self.dirny]
+					if(self.next_move == "down"):
+						return
+					else:
+						self.next_move = "down"
  
-		for i, c in enumerate(self.body):
-			p = c.pos[:]
-			if p in self.turns:
-				turn = self.turns[p]
-				c.move(turn[0],turn[1])
-				if i == len(self.body)-1:
-					self.turns.pop(p)
-			else:
-				if c.dirnx == -1 and c.pos[0] <= 0: c.pos = (c.columns-1, c.pos[1])
-				elif c.dirnx == 1 and c.pos[0] >= c.columns-1: c.pos = (0,c.pos[1])
-				elif c.dirny == 1 and c.pos[1] >= c.rows-1: c.pos = (c.pos[0], 0)
-				elif c.dirny == -1 and c.pos[1] <= 0: c.pos = (c.pos[0],c.rows-1)
-				else: c.move(c.dirnx,c.dirny)
+
 	   
  
 	def reset(self, pos):
@@ -104,29 +93,15 @@ class snake(object):
 		self.dirny = 1
  
  
-	def addCube(self):
-		tail = self.body[-1]
-		dx, dy = tail.dirnx, tail.dirny
- 
-		if dx == 1 and dy == 0:
-			self.body.append(cube((tail.pos[0]-1,tail.pos[1])))
-		elif dx == -1 and dy == 0:
-			self.body.append(cube((tail.pos[0]+1,tail.pos[1])))
-		elif dx == 0 and dy == 1:
-			self.body.append(cube((tail.pos[0],tail.pos[1]-1)))
-		elif dx == 0 and dy == -1:
-			self.body.append(cube((tail.pos[0],tail.pos[1]+1)))
- 
-		self.body[-1].dirnx = dx
-		self.body[-1].dirny = dy
-	   
- 
 	def draw(self, surface):
 		for i, c in enumerate(self.body):
 			if i ==0:
-				c.draw(surface, True)
+				# todo: criar um cubo e desenhar
+				pass
+				# c.draw(surface, True)
 			else:
-				c.draw(surface)
+				pass
+				# c.draw(surface)
  
  
 def drawGrid(w, h, rows, columns, surface):
@@ -151,21 +126,6 @@ def redrawWindow(surface):
 	pygame.display.update()
  
  
-def randomSnack(rows, item):
- 
-	positions = item.body
- 
-	while True:
-		x = random.randrange(rows)
-		y = random.randrange(rows)
-		if len(list(filter(lambda z:z.pos == (x,y), positions))) > 0:
-			continue
-		else:
-			break
-	   
-	return (x,y)
- 
- 
 def message_box(subject, content):
 	root = tk.Tk()
 	root.attributes("-topmost", True)
@@ -183,47 +143,55 @@ def main():
 	hostname = input("Digite o dóminio ou ip so servidor: ")
 	playername = input("Digite o nome do jogador: ")
 
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: 
-		s.connect((hostname, 65333))
-		data = s.recv(1024)
-		playerid = data.decode()
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock: 
+		sock.connect((hostname, 65333))
+		data = sock.recv(1024)
+		playerid =int(data.decode())
 		#Envia o nome, o id e o evento ao servidor.
-		dictplayer = {'playername':playername, 'playerid': int(playerid), 'eventname': 'setup'}
-		s.sendall(json.dumps(dictplayer).encode())
+		dictplayer = {'playername':playername, 'playerid': playerid, 'eventname': 'setup'}
+		sock.sendall(json.dumps(dictplayer).encode())
 		
 		#Recebe evento, id, height e width.
-		data = s.recv(1024)
+		data = sock.recv(1024)
 		dictserver = json.loads(data.decode())
 		rows = dictserver["height"]
 		columns = dictserver["width"]
 		width = 800
 		height = 800
+		pos = tuple(dictserver["snakes"][0][0])
+		snakepos = tuple(dictserver["appleposition"])
 
 		win = pygame.display.set_mode((width, height))
-		s = snake((255,0,0), (10,10))
-		snack = cube(randomSnack(rows, s), color=(0,255,0))
+		s = snake((255,0,0), pos)
+		snack = cube(snakepos, color=(0,255,0))
 		flag = True
 		print(width, height, rows, columns)
 	 
 		clock = pygame.time.Clock()
-	   
+		sock.setblocking(0)
+		redrawWindow(win)
 		while flag:
-			pygame.time.delay(50)
-			clock.tick(10)
-			
-			s.move()
-			if s.body[0].pos == snack.pos:
-				s.addCube()
-				snack = cube(randomSnack(rows, s), color=(0,255,0))
-	 
-			for x in range(len(s.body)):
-				if s.body[x].pos in list(map(lambda z:z.pos,s.body[x+1:])):
-					print('Score: ', len(s.body))
-					message_box('You Lost!', 'Play again...')
-					s.reset((10,10))
-					break
-	 		
-			redrawWindow(win)
+			try:
+				data = sock.recv(1024)
+				# pygame.time.delay(50)
+				# clock.tick(10)
+				
+				'''
+				for x in range(len(s.body)):
+					if s.body[x].pos in list(map(lambda z:z.pos,s.body[x+1:])):
+						print('Score: ', len(s.body))
+						message_box('You Lost!', 'Play again...')
+						s.reset((10,10))
+						break
+						'''
+		 		
+				redrawWindow(win)
+			except BlockingIOError:
+				
+				continue
+
+			finally:
+				s.move()
  
 
 main()
