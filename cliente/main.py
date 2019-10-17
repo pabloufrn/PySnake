@@ -174,57 +174,50 @@ def message_box(subject, content):
  
  
 def main():
-	global width, rows, s, snack
+	global width, height, rows, columns, s, snack
 	
+	hostname = input("Digite o dóminio ou ip so servidor: ")
+	playername = input("Digite o nome do jogador: ")
+
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: 
-		s.connect(('localhost', 65333))
+		s.connect((hostname, 65333))
 		data = s.recv(1024)
 		playerid = data.decode()
 		#Envia o nome, o id e o evento ao servidor.
-		dictplayer = {'playername':'nome1', 'playerid': int(playerid), 'eventname': 'setup'}
+		dictplayer = {'playername':playername, 'playerid': int(playerid), 'eventname': 'setup'}
 		s.sendall(json.dumps(dictplayer).encode())
 		
 		#Recebe evento, id, height e width.
 		data = s.recv(1024)
 		dictserver = json.loads(data.decode())
-		width = 800
-		rows = 800 #dictserver['height']
+		rows = dictserver["height"]
+		columns = dictserver["width"]
 
-		print(dictserver)
-		print(width, rows)
-
-
-	#while(True):
-	win = pygame.display.set_mode((width, width))
-	s = snake((255,0,0), (10,10))
-	snack = cube(randomSnack(rows, s), color=(0,255,0))
-	flag = True
- 
-	clock = pygame.time.Clock()
-   
-	while flag:
-		pygame.time.delay(50)
-		clock.tick(10)
-		
-		
-		s.move()
-		if s.body[0].pos == snack.pos:
-			s.addCube()
-			snack = cube(randomSnack(rows, s), color=(0,255,0))
- 
-		for x in range(len(s.body)):
-			if s.body[x].pos in list(map(lambda z:z.pos,s.body[x+1:])):
-				print('Score: ', len(s.body))
-				message_box('You Lost!', 'Play again...')
-				s.reset((10,10))
-				break
- 		
-		redrawWindow(win)
- 	
+		win = pygame.display.set_mode((width, height))
+		s = snake((255,0,0), (10,10))
+		snack = cube(randomSnack(rows, s), color=(0,255,0))
+		flag = True
+	 
+		clock = pygame.time.Clock()
 	   
-	pass
- 
- 
+		while flag:
+			pygame.time.delay(50)
+			clock.tick(10)
+			
+			
+			s.move()
+			if s.body[0].pos == snack.pos:
+				s.addCube()
+				snack = cube(randomSnack(rows, s), color=(0,255,0))
+	 
+			for x in range(len(s.body)):
+				if s.body[x].pos in list(map(lambda z:z.pos,s.body[x+1:])):
+					print('Score: ', len(s.body))
+					message_box('You Lost!', 'Play again...')
+					s.reset((10,10))
+					break
+	 		
+			redrawWindow(win)
  
 
 main()
