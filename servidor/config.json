@@ -1,8 +1,8 @@
 {
 	"hostname": "localhost",
 	"port": 65333,
-	"board_width": 400,
-	"board_height": 300,
+	"board_width": 15,
+	"board_height": 10,
 	"max_players": 4,
 	"max_apples": 40,
 	"min_player_size": 3,
