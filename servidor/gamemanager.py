@@ -12,6 +12,8 @@ ENDED = 2
 class GameManager:
 	#initializing
 	def __init__(self):
+		self.iotime = 0
+		self.processingtime = 0
 		self.players = []
 		self.game_state = WAITING
 		self.load_config()
@@ -117,7 +119,6 @@ class GameManager:
 			exit()
 
 	def process_event(self, eventstr):
-		print(eventstr)
 		try:
 			event = json.loads(eventstr)
 		except Exception:
@@ -136,7 +137,12 @@ class GameManager:
 			self.send_event_to_player(event["playerid"], jsondict)
 		elif(event["eventname"] == "move"):
 			mdir = event["dir"]
-			if(player.last_move != mdir):
+			if(	(mdir == "up" and player.last_move == "down")) or \
+				(mdir == "down" and player.last_move == "up") or \
+				(mdir == "left" and player.last_move == "right") or \
+				(mdir == "right" and player.last_move == "left"):
+				pass
+			else:
 				player.next_move = mdir
 		elif(event["eventname"] == "exit"):
 			self.player.conn.close()
@@ -181,7 +187,7 @@ class GameManager:
 			event = {'eventname': 'die'}
 			self.players[dead].send_message(json.dumps(event))
 			self.players[dead].spawn(0, 0)
-		
+
 
 	def send_game_state(self):
 		game_state = dict()

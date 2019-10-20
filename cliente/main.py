@@ -1,7 +1,5 @@
 import math
 import pygame
-import tkinter as tk
-from tkinter import messagebox
 import socket
 import json
  
@@ -31,19 +29,20 @@ class cube(object):
  
 		pygame.draw.rect(surface, self.color, (i*disx+1,j*disy+1, disx-2, disy-2))
 		# todo: calcular a posição dos olhos
-		# if eyes:
-			# centre = dis//2
-			# radius = 3
-			# circleMiddle = (i*dis+centre-radius,j*dis+8)
-			# circleMiddle2 = (i*dis + dis -radius*2, j*dis+8)
-			# pygame.draw.circle(surface, (0,0,0), circleMiddle, radius)
-			# pygame.draw.circle(surface, (0,0,0), circleMiddle2, radius)
+		if eyes:
+			centrex = disx//2
+			centrey = disy//2
+			radius = 3
+			circleMiddle = (i*disx+centrex-radius,j*disy+8)
+			circleMiddle2 = (i*disx + disx -radius*2, j*disy+8)
+			pygame.draw.circle(surface, (0,0,0), circleMiddle, radius)
+			pygame.draw.circle(surface, (0,0,0), circleMiddle2, radius)
  
 class snake(object):
 	def __init__(self):
-		self.next_move = "up"
+		self.next_move = "right"
  
-	def move(self, socket, playerid):
+	def move(self, socket, playerid, dead = False):
 		send = False
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -53,7 +52,7 @@ class snake(object):
 				request["eventname"] = "exit"
 				socket.sendall(json.dumps(request).encode())
 				exit(0)
- 
+			
 			keys = pygame.key.get_pressed()
 
 			for key in keys:
@@ -87,7 +86,6 @@ class snake(object):
 		if(send):
 			dictmove = {"eventname": "move", "playerid": playerid, "dir": self.next_move}
 			socket.sendall(json.dumps(dictmove).encode())
-			print(json.dumps(dictmove).encode())
  
 def drawGrid(w, h, rows, columns, surface):
 	sizeBtwny = w // rows
@@ -103,7 +101,7 @@ def drawGrid(w, h, rows, columns, surface):
 		pygame.draw.line(surface, (255,255,255), (x,0),(x,h))
 
 def drawScoreboard(scores, surface, font):
-	y = 10
+	y = 5
 	for score in scores:
 		text = f"{score[1]} -  {score[0]}"
 		view = font.render(text, True, (255, 255,255), (0, 0, 0))
@@ -141,7 +139,8 @@ def main():
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock: 
 		sock.connect((hostname, 65333))
 		data = sock.recv(1024)
-		playerid =int(data.decode())
+		datastr = data.decode()
+		playerid = int(data.decode())
 		#Envia o nome, o id e o evento ao servidor.
 		dictplayer = {'playername':playername, 'playerid': playerid, 'eventname': 'setup'}
 		sock.sendall(json.dumps(dictplayer).encode())
@@ -153,20 +152,24 @@ def main():
 		columns = dictserver["width"]
 		width = 600
 		height = 600
+		dead = False
 		pygame.init()
 		font = pygame.font.SysFont("monospace", 15)
 		win = pygame.display.set_mode((width, height))
 		flag = True
-		print(width, height, rows, columns)
 		clock = pygame.time.Clock()
 		sock.setblocking(0)
 		redrawWindow(win)
 
 		while flag:
 			try:
-				data = sock.recv(1024)
+				data = sock.recv(16384)
 				strdata = data.decode()
-				json_start = strdata.rfind("}{") + 1
+				json_start = 0
+				try:
+					json_start = strdata.rfind("}{") + 1
+				except:
+					pass
 				game_state = json.loads(strdata[json_start:])
 				#Quando o evento for update, adicionar todas as snakes pra lista e desenha-las.
 				if(game_state["eventname"] == "update"):
@@ -174,7 +177,8 @@ def main():
 					drawGrid(width, height, rows, columns, win)
 					for index, s in enumerate(game_state["snakes"]):
 						if(index == playerid and s != []):
-							for c in s:
+							cube(tuple(s[0]), color=(255,0,0)).draw(win, True)
+							for c in s[1:]:
 								cube(tuple(c), color=(255,0,0)).draw(win)
 						elif(s != []):
 							for c in s:
@@ -183,23 +187,16 @@ def main():
 						cube(apple, color=(0,255,0)).draw(win)
 					drawScoreboard(game_state["scoreboard"], win, font)
 					pygame.display.update()
+				elif(game_state["eventname"] == "die"):
+					dead = False
 				# pygame.time.delay(50)
 				# clock.tick(10)
-				
-				'''
-				for x in range(len(s.body)):
-					if s.body[x].pos in list(map(lambda z:z.pos,s.body[x+1:])):
-						print('Score: ', len(s.body))
-						message_box('You Lost!', 'Play again...')
-						s.reset((10,10))
-						break
-						'''
 		 		
 				# redrawWindow(win)
 			except BlockingIOError:
 				continue
 			finally:
-				player.move(sock, playerid)
+				player.move(sock, playerid, True)
  
 
 main()
