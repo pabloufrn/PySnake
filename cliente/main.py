@@ -188,6 +188,20 @@ def main():
 		while flag:
 			try:
 				data = sock.recv(1024)
+				game_state = json.loads(data.decode())
+
+				#Quando o evento for update, adicionar todas as snakes pra lista e desenha-las.
+				snakes_list = [None]*5
+				if(game_state["eventname"] == "update"):
+					for index, s in enumerate(game_state["snakes"]):
+						if(index == playerid and s != []):
+							for c in s:
+								cube(tuple(c), color=(255,0,0)).draw(win)
+						elif(s != []):
+							for c in s:
+								cube(tuple(c), color=(0,0,255)).draw(win)
+
+					snack = cube(game_state["appleposition"], color=(0,255,0))
 				# pygame.time.delay(50)
 				# clock.tick(10)
 				
