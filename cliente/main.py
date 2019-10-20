@@ -40,22 +40,18 @@ class cube(object):
 			# pygame.draw.circle(surface, (0,0,0), circleMiddle2, radius)
  
 class snake(object):
-	body = []
-	turns = {}
 	def __init__(self, color, pos):
-		self.color = color
-		self.head = cube(pos)
-		self.body.append(self.head)
-		self.dirnx = 0
-		self.dirny = 1
+		self.next_move = "up"
  
 	def move(self, socket, playerid):
-
-		dicmove = {}
-
+		dictmove = {}
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
+				socket.close()
+				dictmove["eventname"] = "exit"
+				socket.sendall(json.dumps(dictmove).encode())
+				exit(0)
  
 			keys = pygame.key.get_pressed()
 
@@ -94,30 +90,8 @@ class snake(object):
 						dictmove["eventname"] = "move"
 						dictmove["playerid"] = playerid
 						dictmove["dir"] = self.next_move
-
-		socket.sendall(json.dumps(dictmove).encode())
-
-	   
- 
-	def reset(self, pos):
-		self.head = cube(pos)
-		self.body = []
-		self.body.append(self.head)
-		self.turns = {}
-		self.dirnx = 0
-		self.dirny = 1
- 
- 
-	def draw(self, surface):
-		for i, c in enumerate(self.body):
-			if i ==0:
-				# todo: criar um cubo e desenhar
-				pass
-				# c.draw(surface, True)
-			else:
-				pass
-				# c.draw(surface)
- 
+		if(dictmove != {}):
+			socket.sendall(json.dumps(dictmove).encode())
  
 def drawGrid(w, h, rows, columns, surface):
 	sizeBtwny = w // rows
@@ -135,8 +109,6 @@ def drawGrid(w, h, rows, columns, surface):
 def redrawWindow(surface):
 	global rows, columns, width, height, s, snack
 	surface.fill((0,0,0))
-	s.draw(surface)
-	snack.draw(surface)
 	drawGrid(width, height, rows, columns, surface)
 	pygame.display.update()
  
@@ -201,7 +173,7 @@ def main():
 							for c in s:
 								cube(tuple(c), color=(0,0,255)).draw(win)
 
-					snack = cube(game_state["appleposition"], color=(0,255,0))
+					snack = cube(game_state["appleposition"], color=(0,255,0)).draw()
 				# pygame.time.delay(50)
 				# clock.tick(10)
 				
@@ -220,7 +192,7 @@ def main():
 				continue
 
 			finally:
-				s.move()
+				s.move(sock, playerid)
  
 
 main()
