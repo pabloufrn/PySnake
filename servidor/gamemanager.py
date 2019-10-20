@@ -15,7 +15,7 @@ class GameManager:
 		self.players = []
 		self.game_state = WAITING
 		self.load_config()
-		self.apple_pos = self.get_random_valid_position()
+		self.apples = []
 		self.load_socket()
 		self.play()
 
@@ -25,6 +25,8 @@ class GameManager:
 		invalid = False
 		for _ in range(0, (self.board_width-1)*(self.board_height-1)-1):
 			for player in self.players:
+				if(player == None):
+					continue
 				invalid = False
 				if((x, y) in player.snake):
 					if(x == self.board_width-2):
@@ -85,9 +87,10 @@ class GameManager:
 			read_list.append(self.socket)
 			while True :
 				now = time.time() 
-				if(now - timer > 0.5):
+				if(now - timer > self.apple_spawn_rate):
 					timer = now 
-					self.apple_pos = self.get_random_valid_position()
+					if(len(self.apples) < self.max_apples):
+						self.apples.append(self.get_random_valid_position())
 				if(now - update_timer > 0.1):
 					update_timer = now 
 					self.update_game()
@@ -127,7 +130,6 @@ class GameManager:
 			# player.body = self.get_random_body()
 			jsondict = dict()
 			jsondict["eventname"] = "setup"
-			# jsondict["player"] = self.players
 			jsondict["height"] = self.board_height
 			jsondict["width"] = self.board_width
 			print(json.dumps(jsondict))
@@ -150,15 +152,45 @@ class GameManager:
 			verificar se a proxima parte do corpo também colide'''
 	def update_game(self):
 		for player in self.players:
-			player.move(self.board_width, self.board_height)
+			if(player):
+				player.move(self.board_width, self.board_height)
+		# checar se comeu a maça
+		for player in self.players:
+			if(player == None):
+				continue
+			for apple in self.apples:
+				if(player.try_eat(apple)):
+					self.apples.remove(apple)
+		# checar se o player colidiu com alguém
+		deads = []
+		for playeroneid, playerone in enumerate(self.players):
+			if(playerone == None or len(playerone.snake) == 0):
+				continue
+			for playertwoid, playertwo in enumerate(self.players):
+				if(playertwo == None or len(playerone.snake) == 0):
+					continue
+				elif(playeroneid == playertwoid):
+					if(len(playerone.snake) > 4 and playerone.snake[0] in list(playerone.snake)[4:]):
+						deads.append(playeroneid)
+				else:
+					if(playerone.snake[0] in playertwo.snake):
+						deads.append(playeroneid)
+		for dead in deads:
+			for body_part in self.players[dead].snake:
+				self.apples.append(body_part)
+			event = {'eventname': 'die'}
+			self.players[dead].send_message(json.dumps(event))
+			self.players[dead].spawn(0, 0)
+		
 
 	def send_game_state(self):
 		game_state = dict()
 		game_state["eventname"] = "update"
-		game_state["snakes"] = [list(player.snake) for player in self.players]
-		game_state["appleposition"] = self.apple_pos
+		game_state["snakes"] = [list(player.snake) if player else [] for player in self.players]
+		game_state["apples"] = self.apples
+		game_state["scoreboard"] = [[player.name,player.score] for player in self.players if player]
 		for player in self.players:
-			if(player.name):
+			if(player and player.name):
 				player.send_message(json.dumps(game_state))
 ''' Lista de coisas para fazer
 - Carregar configuração do servidor e enviar para o cliente.

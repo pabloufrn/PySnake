@@ -9,15 +9,23 @@ class Player:
 		self.last_move = "up"
 		self.next_move = "right"
 		self.name = None
-		# self.set_position((0,0)) # posição aleatoria
+		self.score = 0
 
 	def send_message(self, message):
 		self.conn.send(message.encode())
 	def spawn(self, pos, size):
+		self.snake = deque()
 		for _ in range(size):
 			self.snake.append(pos)
+	def try_eat(self, apple_pos):
+		if(len(self.snake) > 0 and self.snake[0] == apple_pos):
+			self.snake.append(self.snake[-1])
+			self.score += 1
+			return True
+		else: 
+			return False
 	def move(self, width, height):
-		if(not self.name):
+		if(not self.name or len(self.snake) == 0):
 			return
 		self.snake.pop()
 		self.last_move = self.next_move

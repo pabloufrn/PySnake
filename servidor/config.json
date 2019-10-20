@@ -4,8 +4,8 @@
 	"board_width": 30,
 	"board_height": 30,
 	"max_players": 4,
-	"max_apples": 40,
+	"max_apples": 5,
 	"min_player_size": 3,
 	"max_player_size": 10,
-	"apple_spawn_rate": 500
+	"apple_spawn_rate": 0.5
 }

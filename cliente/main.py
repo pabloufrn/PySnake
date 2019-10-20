@@ -47,10 +47,11 @@ class snake(object):
 		send = False
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
+				request = {}
 				pygame.quit()
 				socket.close()
-				dictmove["eventname"] = "exit"
-				socket.sendall(json.dumps(dictmove).encode())
+				request["eventname"] = "exit"
+				socket.sendall(json.dumps(request).encode())
 				exit(0)
  
 			keys = pygame.key.get_pressed()
@@ -100,7 +101,19 @@ def drawGrid(w, h, rows, columns, surface):
 	for c in range(columns):
 		x = x + sizeBtwnx
 		pygame.draw.line(surface, (255,255,255), (x,0),(x,h))
- 
+
+def drawScoreboard(scores, surface, font):
+	y = 10
+	for score in scores:
+		text = f"{score[1]} -  {score[0]}"
+		view = font.render(text, True, (255, 255,255), (0, 0, 0))
+		viewRect = view.get_rect()
+		y += 20
+		surface.blit(view, (10, y)) 
+	  
+	# set the center of the rectangular object. 
+	
+
 def redrawWindow(surface):
 	global rows, columns, width, height, s, snack
 	surface.fill((0,0,0))
@@ -140,19 +153,21 @@ def main():
 		columns = dictserver["width"]
 		width = 600
 		height = 600
-
+		pygame.init()
+		font = pygame.font.SysFont("monospace", 15)
 		win = pygame.display.set_mode((width, height))
 		flag = True
 		print(width, height, rows, columns)
-	 
 		clock = pygame.time.Clock()
 		sock.setblocking(0)
 		redrawWindow(win)
+
 		while flag:
 			try:
 				data = sock.recv(1024)
-				game_state = json.loads(data.decode())
-
+				strdata = data.decode()
+				json_start = strdata.rfind("}{") + 1
+				game_state = json.loads(strdata[json_start:])
 				#Quando o evento for update, adicionar todas as snakes pra lista e desenha-las.
 				if(game_state["eventname"] == "update"):
 					win.fill((0,0,0))
@@ -164,8 +179,9 @@ def main():
 						elif(s != []):
 							for c in s:
 								cube(tuple(c), color=(0,0,255)).draw(win)
-
-					snack = cube(game_state["appleposition"], color=(0,255,0)).draw(win)
+					for apple in game_state["apples"]:
+						cube(apple, color=(0,255,0)).draw(win)
+					drawScoreboard(game_state["scoreboard"], win, font)
 					pygame.display.update()
 				# pygame.time.delay(50)
 				# clock.tick(10)
@@ -181,7 +197,6 @@ def main():
 		 		
 				# redrawWindow(win)
 			except BlockingIOError:
-				
 				continue
 			finally:
 				player.move(sock, playerid)
