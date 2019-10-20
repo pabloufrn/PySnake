@@ -44,7 +44,7 @@ class snake(object):
 		self.next_move = "up"
  
 	def move(self, socket, playerid):
-		dictmove = {}
+		send = False
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
@@ -58,40 +58,35 @@ class snake(object):
 			for key in keys:
 				if keys[pygame.K_LEFT]:
 					if(self.next_move == "left"):
-						return
+						continue
 					else: 
+						send = True
 						self.next_move = "left"
-						dictmove["eventname"] = "move"
-						dictmove["playerid"] = playerid
-						dictmove["dir"] = self.next_move
 				elif keys[pygame.K_RIGHT]:
 					if(self.next_move == "right"):
-						return
+						continue
 					else: 
+						send = True
 						self.next_move = "right"
-						dictmove["eventname"] = "move"
-						dictmove["playerid"] = playerid
-						dictmove["dir"] = self.next_move
  
 				elif keys[pygame.K_UP]:
 					if(self.next_move == "up"):
-						return
+						continue
 					else:
+						send = True
 						self.next_move = "up"
-						dictmove["eventname"] = "move"
-						dictmove["playerid"] = playerid
-						dictmove["dir"] = self.next_move
  
 				elif keys[pygame.K_DOWN]:
 					if(self.next_move == "down"):
-						return
+						continue
 					else:
+						send = True
 						self.next_move = "down"
-						dictmove["eventname"] = "move"
-						dictmove["playerid"] = playerid
-						dictmove["dir"] = self.next_move
-		if(dictmove != {}):
+
+		if(send):
+			dictmove = {"eventname": "move", "playerid": playerid, "dir": self.next_move}
 			socket.sendall(json.dumps(dictmove).encode())
+			print(json.dumps(dictmove).encode())
  
 def drawGrid(w, h, rows, columns, surface):
 	sizeBtwny = w // rows

@@ -48,9 +48,6 @@ class GameManager:
 		pos = self.get_random_valid_position()
 		player.spawn(pos, self.min_player_size)
 
-	def log_event(self, eventbytes):
-		print(eventbytes.decode())
-
 	def send_event_to_all(self, dictjson):
 		for player in self.players:
 			if(player):
@@ -95,12 +92,11 @@ class GameManager:
 					update_timer = now 
 					self.update_game()
 					self.send_game_state()
-				readable, writeable, error = select.select(read_list,[],[], 1)
+				readable, writeable, error = select.select(read_list,[],[], 0)
 				for sock in readable:
 					if sock is self.socket:
 						conn, info = sock.accept()
 						read_list.append(conn)
-						print("connection received from ", info)
 						strplayerid = str(len(self.players))
 						self.players.append(Player(conn, info))
 						conn.send(strplayerid.encode())
@@ -118,6 +114,7 @@ class GameManager:
 			exit()
 
 	def process_event(self, eventstr):
+		print(eventstr)
 		try:
 			event = json.loads(eventstr)
 		except Exception:
@@ -136,7 +133,7 @@ class GameManager:
 			print(json.dumps(jsondict))
 			self.send_event_to_player(event["playerid"], jsondict)
 		elif(event["eventname"] == "move"):
-			print("move")
+			mdir = event["dir"]
 			if(player.last_move != mdir):
 				player.next_move = mdir
 		elif(event["eventname"] == "exit"):
@@ -160,7 +157,6 @@ class GameManager:
 		game_state["eventname"] = "update"
 		game_state["snakes"] = [list(player.snake) for player in self.players]
 		game_state["appleposition"] = self.apple_pos
-		print(game_state)
 		for player in self.players:
 			if(player.name):
 				player.send_message(json.dumps(game_state))
