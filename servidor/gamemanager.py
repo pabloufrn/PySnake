@@ -46,9 +46,7 @@ class GameManager:
 	def spawn_player(self, playerid):
 		player = self.players[playerid]
 		pos = self.get_random_valid_position()
-		player.snake = []
-		for _ in range(self.min_player_size):
-			player.snake.append(pos)
+		player.spawn(pos, self.min_player_size)
 
 	def log_event(self, eventbytes):
 		print(eventbytes.decode())
@@ -84,16 +82,20 @@ class GameManager:
 	def play(self):
 		read_list = []
 		timer = time.time()
+		update_timer = time.time()
 		now = 0
 		try:
 			read_list.append(self.socket)
 			while True :
 				now = time.time() 
-				if(timer - now > 0.5):
+				if(now - timer > 0.5):
 					timer = now 
 					self.apple_pos = self.get_random_valid_position()
-				self.send_game_state()
-				readable, writeable, error = select.select(read_list,[],[])
+				if(now - update_timer > 0.1):
+					update_timer = now 
+					self.update_game()
+					self.send_game_state()
+				readable, writeable, error = select.select(read_list,[],[], 1)
 				for sock in readable:
 					if sock is self.socket:
 						conn, info = sock.accept()
@@ -134,6 +136,7 @@ class GameManager:
 			print(json.dumps(jsondict))
 			self.send_event_to_player(event["playerid"], jsondict)
 		elif(event["eventname"] == "move"):
+			print("move")
 			if(player.last_move != mdir):
 				player.next_move = mdir
 		elif(event["eventname"] == "exit"):
@@ -148,14 +151,16 @@ class GameManager:
 			#lembrete
 			'''para verificar se ela está morta, é necessário 
 			verificar se a proxima parte do corpo também colide'''
+	def update_game(self):
+		for player in self.players:
+			player.move(self.board_width, self.board_height)
 
 	def send_game_state(self):
 		game_state = dict()
 		game_state["eventname"] = "update"
-		game_state["snakes"] = [player.snake for player in self.players]
+		game_state["snakes"] = [list(player.snake) for player in self.players]
 		game_state["appleposition"] = self.apple_pos
 		print(game_state)
-
 		for player in self.players:
 			if(player.name):
 				player.send_message(json.dumps(game_state))
@@ -180,4 +185,5 @@ Setup (enviador pelo server):
 	"height": 20,
 	"width": 30 
 }
+
 '''
