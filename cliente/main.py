@@ -55,7 +55,7 @@ class snake(object):
 				pygame.quit()
  
 			keys = pygame.key.get_pressed()
- 
+			break
 			for key in keys:
 				if keys[pygame.K_LEFT]:
 					if(self.next_move == "left"):
@@ -156,8 +156,8 @@ def main():
 		dictserver = json.loads(data.decode())
 		rows = dictserver["height"]
 		columns = dictserver["width"]
-		width = 800
-		height = 800
+		width = 600
+		height = 600
 		pos = tuple(dictserver["snakes"][0][0])
 		snakepos = tuple(dictserver["appleposition"])
 

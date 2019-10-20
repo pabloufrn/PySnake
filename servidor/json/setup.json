@@ -3,3 +3,26 @@
     "eventname": "setup",
     "playername": "teste"
 }
+{
+	"eventname": "setup", 
+	"height": 100, 
+	"width": 100
+}
+{
+	"playerid": 0,
+	"eventname": "move", 
+	"dir": "up"
+}
+{
+	"playerid": 0,
+	"eventname": "exit"
+}
+{
+	"eventname": "die"
+}
+{
+	"eventname": "update",
+	"appleposition": [86, 82],
+	"snakes": [[[20, 35], [20, 35], [20, 35]]],
+	"scoreboard": [0]
+}

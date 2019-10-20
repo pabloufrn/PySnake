@@ -55,7 +55,8 @@ class GameManager:
 
 	def send_event_to_all(self, dictjson):
 		for player in self.players:
-			player.send_message(json.dumps(dictjson))
+			if(player):
+				player.send_message(json.dumps(dictjson))
 
 	def send_event_to_player(self, playerid, dictjson):
 		self.players[playerid].send_message(json.dumps(dictjson))
@@ -82,9 +83,16 @@ class GameManager:
 
 	def play(self):
 		read_list = []
+		timer = time.time()
+		now = 0
 		try:
 			read_list.append(self.socket)
 			while True :
+				now = time.time() 
+				if(timer - now > 0.5):
+					timer = now 
+					self.apple_pos = self.get_random_valid_position()
+				self.send_game_state()
 				readable, writeable, error = select.select(read_list,[],[])
 				for sock in readable:
 					if sock is self.socket:
@@ -103,9 +111,9 @@ class GameManager:
 							read_list.remove(sock)
 		except Exception as e:
 			raise e
-			# print(e)
-			# self.socket.close()
-			# exit()
+			print(e)
+			self.socket.close()
+			exit()
 
 	def process_event(self, eventstr):
 		try:
@@ -113,8 +121,8 @@ class GameManager:
 		except Exception:
 			print(f"json invalido recebido:\n{eventstr}")
 			return
+		player = self.players[event["playerid"]]
 		if(event["eventname"] == "setup"):
-			player = self.players[event["playerid"]]
 			player.name = event["playername"]
 			self.spawn_player(event["playerid"])
 			# player.body = self.get_random_body()
@@ -123,10 +131,14 @@ class GameManager:
 			# jsondict["player"] = self.players
 			jsondict["height"] = self.board_height
 			jsondict["width"] = self.board_width
-			jsondict["appleposition"] = self.apple_pos
-			jsondict["snakes"] = [player.snake for player in self.players]
 			print(json.dumps(jsondict))
 			self.send_event_to_player(event["playerid"], jsondict)
+		elif(event["eventname"] == "move"):
+			if(player.last_move != mdir):
+				player.next_move = mdir
+		elif(event["eventname"] == "exit"):
+			self.player.conn.close()
+			self.players[playerid] = None
 		else:
 			print("evento não definido.")
 			jsondict = dict()
@@ -137,7 +149,16 @@ class GameManager:
 			'''para verificar se ela está morta, é necessário 
 			verificar se a proxima parte do corpo também colide'''
 
+	def send_game_state(self):
+		game_state = dict()
+		game_state["eventname"] = "update"
+		game_state["snakes"] = [player.snake for player in self.players]
+		game_state["appleposition"] = self.apple_pos
+		print(game_state)
 
+		for player in self.players:
+			if(player.name):
+				player.send_message(json.dumps(game_state))
 ''' Lista de coisas para fazer
 - Carregar configuração do servidor e enviar para o cliente.
 - Receber a configuração no cliente e exibir o jogo.
