@@ -165,6 +165,9 @@ def main():
 				#Quando o evento for update, adicionar todas as snakes pra lista e desenha-las.
 				snakes_list = [None]*5
 				if(game_state["eventname"] == "update"):
+					print('update')
+					win.fill((0,0,0))
+					drawGrid(width, height, rows, columns, win)
 					for index, s in enumerate(game_state["snakes"]):
 						if(index == playerid and s != []):
 							for c in s:
@@ -174,6 +177,7 @@ def main():
 								cube(tuple(c), color=(0,0,255)).draw(win)
 
 					snack = cube(game_state["appleposition"], color=(0,255,0)).draw()
+					pygame.display.update()
 				# pygame.time.delay(50)
 				# clock.tick(10)
 				
@@ -186,7 +190,7 @@ def main():
 						break
 						'''
 		 		
-				redrawWindow(win)
+				# redrawWindow(win)
 			except BlockingIOError:
 				
 				continue
