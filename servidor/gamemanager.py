@@ -9,7 +9,6 @@ WAITING = 0
 STARTED = 1
 ENDED = 2
 
-sum_time = 0
 
 class GameManager:
 	#initializing
@@ -84,12 +83,14 @@ class GameManager:
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 	def play(self):
-		global sum_time
-
 		read_list = []
 		timer = time.time()
 		update_timer = time.time()
+		time_timer = time.time()
 		now = 0
+		iostart = 0
+		iototal = 0
+		pstotal = 0
 		try:
 			read_list.append(self.socket)
 			while True :
@@ -98,10 +99,28 @@ class GameManager:
 					timer = now 
 					if(len(self.apples) < self.max_apples):
 						self.apples.append(self.get_random_valid_position())
+					pstime = time.time() - now 
+					pstotal += pstime
 				if(now - update_timer > 0.1):
+					iotime = now - iostart
+					iototal += iotime
 					update_timer = now 
 					self.update_game()
+					pstime = time.time() - now 
+					pstotal += pstime
+					iostart = time.time()
 					self.send_game_state()
+					iotime = time.time() - iostart 
+					iototal += iotime
+				else:
+					iotime = now - iostart
+					iototal += iotime
+				if(time.time() - time_timer > 5):
+					print(iototal, pstotal)
+					iototal = 0 
+					pstotal = 0
+					time_timer = time.time()
+				iostart = time.time()
 				readable, writeable, error = select.select(read_list,[],[], 0)
 				for sock in readable:
 					if sock is self.socket:
@@ -111,26 +130,18 @@ class GameManager:
 						self.players.append(Player(conn, info))
 						conn.send(strplayerid.encode())
 					else:
-						initial_time = time.time()
 						data = sock.recv(1024)
-						final_time = time.time()
-						sum_time += final_time - initial_time
 						if data:
 							self.process_event(data.decode())
-							print(sum_time)
 						else:
 							sock.close()
 							read_list.remove(sock)
 		except Exception as e:
 			raise e
-			print(e)
 			self.socket.close()
 			exit()
 
 	def process_event(self, eventstr):
-		global sum_time
-		initial_time = time.time()
-
 		try:
 			event = json.loads(eventstr)
 		except Exception:
@@ -145,7 +156,6 @@ class GameManager:
 			jsondict["eventname"] = "setup"
 			jsondict["height"] = self.board_height
 			jsondict["width"] = self.board_width
-			print(json.dumps(jsondict))
 			self.send_event_to_player(event["playerid"], jsondict)
 		elif(event["eventname"] == "move"):
 			mdir = event["dir"]
@@ -165,9 +175,6 @@ class GameManager:
 			jsondict["eventname"] = "setup"
 			jsondict["errordesc"] = "invalid json sent."
 			self.send_event_to_player(event["playerid"], jsondict)
-
-		final_time = time.time()
-		sum_time += final_time - initial_time
         #lembrete
 		'''para verificar se ela está morta, é necessário 
 		verificar se a proxima parte do corpo também colide'''
@@ -205,9 +212,6 @@ class GameManager:
 
 
 	def send_game_state(self):
-		global sum_time
-		initial_time = time.time()
-
 		game_state = dict()
 		game_state["eventname"] = "update"
 		game_state["snakes"] = [list(player.snake) if player else [] for player in self.players]
@@ -217,8 +221,6 @@ class GameManager:
 			if(player and player.name):
 				player.send_message(json.dumps(game_state))
 
-		final_time = time.time()
-		sum_time += final_time - initial_time
 ''' Lista de coisas para fazer
 - Carregar configuração do servidor e enviar para o cliente.
 - Receber a configuração no cliente e exibir o jogo.
