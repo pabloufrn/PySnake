@@ -2,6 +2,7 @@ import json
 import socket
 import select
 import time
+import threading
 from random import randint
 from entities import *
 
@@ -106,56 +107,61 @@ class GameManager:
 						self.players.append(Player(conn, info))
 						conn.send(strplayerid.encode())
 					else:
-						data = sock.recv(1024)
-						if data:
-							self.process_event(data.decode())
-						else:
-							sock.close()
-							read_list.remove(sock)
+						x = threading.Thread(target=self.process_event, args=(sock,read_list))
+						x.start()
+						
 		except Exception as e:
 			raise e
 			print(e)
 			self.socket.close()
 			exit()
 
-	def process_event(self, eventstr):
+	def process_event(self, sock, read_list):
 		try:
-			event = json.loads(eventstr)
-		except Exception:
-			print(f"json invalido recebido:\n{eventstr}")
+			data = sock.recv(1024)
+		except:
 			return
-		player = self.players[event["playerid"]]
-		if(event["eventname"] == "setup"):
-			player.name = event["playername"]
-			self.spawn_player(event["playerid"])
-			# player.body = self.get_random_body()
-			jsondict = dict()
-			jsondict["eventname"] = "setup"
-			jsondict["height"] = self.board_height
-			jsondict["width"] = self.board_width
-			print(json.dumps(jsondict))
-			self.send_event_to_player(event["playerid"], jsondict)
-		elif(event["eventname"] == "move"):
-			mdir = event["dir"]
-			if(	(mdir == "up" and player.last_move == "down")) or \
-				(mdir == "down" and player.last_move == "up") or \
-				(mdir == "left" and player.last_move == "right") or \
-				(mdir == "right" and player.last_move == "left"):
-				pass
+		if data:
+			eventstr = data.decode()
+			try:
+				event = json.loads(eventstr)
+			except Exception:
+				print(f"json invalido recebido:\n{eventstr}")
+				return
+			player = self.players[event["playerid"]]
+			if(event["eventname"] == "setup"):
+				player.name = event["playername"]
+				self.spawn_player(event["playerid"])
+				# player.body = self.get_random_body()
+				jsondict = dict()
+				jsondict["eventname"] = "setup"
+				jsondict["height"] = self.board_height
+				jsondict["width"] = self.board_width
+				print(json.dumps(jsondict))
+				self.send_event_to_player(event["playerid"], jsondict)
+			elif(event["eventname"] == "move"):
+				mdir = event["dir"]
+				if(	(mdir == "up" and player.last_move == "down")) or \
+					(mdir == "down" and player.last_move == "up") or \
+					(mdir == "left" and player.last_move == "right") or \
+					(mdir == "right" and player.last_move == "left"):
+					pass
+				else:
+					player.next_move = mdir
+			elif(event["eventname"] == "exit"):
+				conn = player.conn
+				self.players[event["playerid"]] = None
+				read_list.remove(conn)
+				conn.close()
 			else:
-				player.next_move = mdir
-		elif(event["eventname"] == "exit"):
-			self.player.conn.close()
-			self.players[playerid] = None
+				print("evento não definido.")
+				jsondict = dict()
+				jsondict["eventname"] = "setup"
+				jsondict["errordesc"] = "invalid json sent."
+				self.send_event_to_player(event["playerid"], jsondict)
 		else:
-			print("evento não definido.")
-			jsondict = dict()
-			jsondict["eventname"] = "setup"
-			jsondict["errordesc"] = "invalid json sent."
-			self.send_event_to_player(event["playerid"], jsondict)
-			#lembrete
-			'''para verificar se ela está morta, é necessário 
-			verificar se a proxima parte do corpo também colide'''
+			read_list.remove(sock)
+			sock.close()
 	def update_game(self):
 		for player in self.players:
 			if(player):

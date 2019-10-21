@@ -48,9 +48,10 @@ class snake(object):
 			if event.type == pygame.QUIT:
 				request = {}
 				pygame.quit()
-				socket.close()
 				request["eventname"] = "exit"
+				request["playerid"] = playerid
 				socket.sendall(json.dumps(request).encode())
+				# socket.close()
 				exit(0)
 			
 			keys = pygame.key.get_pressed()
@@ -181,7 +182,8 @@ def main():
 							for c in s[1:]:
 								cube(tuple(c), color=(255,0,0)).draw(win)
 						elif(s != []):
-							for c in s:
+							cube(tuple(s[1]), color=(0,0,255)).draw(win, True)
+							for c in s[1:]:
 								cube(tuple(c), color=(0,0,255)).draw(win)
 					for apple in game_state["apples"]:
 						cube(apple, color=(0,255,0)).draw(win)
