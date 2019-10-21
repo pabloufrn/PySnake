@@ -97,7 +97,8 @@ class GameManager:
 				if(now - update_timer > 0.1):
 					update_timer = now 
 					self.update_game()
-					self.send_game_state()
+					x = threading.Thread(target=self.process_event, args=(None,None, True))
+					x.start()
 				readable, writeable, error = select.select(read_list,[],[], 0)
 				for sock in readable:
 					if sock is self.socket:
@@ -116,7 +117,9 @@ class GameManager:
 			self.socket.close()
 			exit()
 
-	def process_event(self, sock, read_list):
+	def process_event(self, sock, read_list, send_data=False):
+		if(send_data):
+			return self.send_game_state()
 		try:
 			data = sock.recv(1024)
 		except:
