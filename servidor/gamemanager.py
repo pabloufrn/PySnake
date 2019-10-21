@@ -9,6 +9,8 @@ WAITING = 0
 STARTED = 1
 ENDED = 2
 
+sum_time = 0
+
 class GameManager:
 	#initializing
 	def __init__(self):
@@ -45,6 +47,7 @@ class GameManager:
 					break
 		if(invalid):
 			pass # todo: não conseguiu achar uma posição aleatória válida
+		
 		return (x, y)
 
 	def spawn_player(self, playerid):
@@ -81,6 +84,8 @@ class GameManager:
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 	def play(self):
+		global sum_time
+
 		read_list = []
 		timer = time.time()
 		update_timer = time.time()
@@ -106,9 +111,13 @@ class GameManager:
 						self.players.append(Player(conn, info))
 						conn.send(strplayerid.encode())
 					else:
+						initial_time = time.time()
 						data = sock.recv(1024)
+						final_time = time.time()
+						sum_time += final_time - initial_time
 						if data:
 							self.process_event(data.decode())
+							print(sum_time)
 						else:
 							sock.close()
 							read_list.remove(sock)
@@ -119,6 +128,9 @@ class GameManager:
 			exit()
 
 	def process_event(self, eventstr):
+		global sum_time
+		initial_time = time.time()
+
 		try:
 			event = json.loads(eventstr)
 		except Exception:
@@ -153,9 +165,12 @@ class GameManager:
 			jsondict["eventname"] = "setup"
 			jsondict["errordesc"] = "invalid json sent."
 			self.send_event_to_player(event["playerid"], jsondict)
-			#lembrete
-			'''para verificar se ela está morta, é necessário 
-			verificar se a proxima parte do corpo também colide'''
+
+		final_time = time.time()
+		sum_time += final_time - initial_time
+        #lembrete
+		'''para verificar se ela está morta, é necessário 
+		verificar se a proxima parte do corpo também colide'''
 	def update_game(self):
 		for player in self.players:
 			if(player):
@@ -190,6 +205,9 @@ class GameManager:
 
 
 	def send_game_state(self):
+		global sum_time
+		initial_time = time.time()
+
 		game_state = dict()
 		game_state["eventname"] = "update"
 		game_state["snakes"] = [list(player.snake) if player else [] for player in self.players]
@@ -198,6 +216,9 @@ class GameManager:
 		for player in self.players:
 			if(player and player.name):
 				player.send_message(json.dumps(game_state))
+
+		final_time = time.time()
+		sum_time += final_time - initial_time
 ''' Lista de coisas para fazer
 - Carregar configuração do servidor e enviar para o cliente.
 - Receber a configuração no cliente e exibir o jogo.
