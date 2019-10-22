@@ -11,3 +11,15 @@
 `source activate myenv`
 
 `pip install pygame`
+
+- Para executar o servidor:
+
+No diretório servidor, execute
+
+`python3 main.py`
+
+- Para executar o cliente:
+
+No diretório cliente, execute
+
+`python3 main.py`
