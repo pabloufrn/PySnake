@@ -13,8 +13,6 @@ ENDED = 2
 class GameManager:
 	#initializing
 	def __init__(self):
-		self.iotime = 0
-		self.processingtime = 0
 		self.players = []
 		self.game_state = WAITING
 		self.load_config()
@@ -112,7 +110,7 @@ class GameManager:
 					self.send_game_state()
 					iotime = time.time() - iostart 
 					iototal += iotime
-				else:
+				elif(iostart != 0):
 					iotime = now - iostart
 					iototal += iotime
 				if(time.time() - time_timer > 5):
