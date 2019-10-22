@@ -82,9 +82,13 @@ class GameManager:
 		self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 	def play(self):
+		iostart = 0
+		iototal = 0
+		pstotal = 0
 		read_list = []
 		timer = time.time()
 		update_timer = time.time()
+		time_timer = time.time()
 		now = 0
 		try:
 			read_list.append(self.socket)
@@ -94,10 +98,28 @@ class GameManager:
 					timer = now 
 					if(len(self.apples) < self.max_apples):
 						self.apples.append(self.get_random_valid_position())
+					pstime = time.time() - now 
+					pstotal += pstime
 				if(now - update_timer > 0.1):
-					update_timer = now 
+					iotime = now - iostart
+					iototal += iotime
+					update_timer = time.time()
 					self.update_game()
+					pstime = time.time() - update_timer
+					pstotal += pstime
+					iostart = time.time()
 					self.send_game_state()
+					iotime = time.time() - iostart 
+					iototal += iotime
+				elif(iostart != 0):
+					iotime = now - iostart
+					iototal += iotime
+				if(time.time() - time_timer > 5):
+					print(iototal, pstotal)
+					iototal = 0 
+					pstotal = 0
+					time_timer = time.time()
+				iostart = time.time()
 				readable, writeable, error = select.select(read_list,[],[], 0)
 				for sock in readable:
 					if sock is self.socket:
